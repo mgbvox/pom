@@ -17,3 +17,6 @@ Options:
   -V, --version            Print version
 
 ```
+
+## Compatibility
+* MacOS
