@@ -1,4 +1,4 @@
-<img src="./assets/pom_clear.png" alt="pommie" width=200/>
+<img src="./assets/pom_clear.png" alt="pommie" width=200 align="center"/>
 
 # Pomodoro Timer
 
