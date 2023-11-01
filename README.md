@@ -1,7 +1,11 @@
-<img src="./assets/pom_clear.png" alt="pommie" width=200 align="center"/>
+<p align="center">
+  <img src="./assets/pom_clear.png" alt="pommie" width=200/>
+</p>
+
 
 # Pomodoro Timer
 
+```shell
 Usage: pom [OPTIONS]
 
 Options:
@@ -11,3 +15,5 @@ Options:
   -p, --pattern <PATTERN>  [default: wswswl]
   -h, --help               Print help
   -V, --version            Print version
+
+```
