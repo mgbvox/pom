@@ -1,7 +1,9 @@
-// Import IntoRawMode
 use std::io::{stdin, stdout};
 use std::process::Command;
-use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
@@ -16,16 +18,19 @@ use termion::raw::IntoRawMode;
 #[command(version = "1.0", author = "Your Name", about = "Pomodoro Timer")]
 struct PomArgs {
     /// Duration for work in mm:ss
-    #[arg(short, long)]
+    #[arg(short, long, default_value = "25:00")]
     work: String,
 
     /// Duration for a short break in mm:ss
-    #[arg(short, long)]
+    #[arg(short, long, default_value = "5:00")]
     short: String,
 
     /// Duration for a long break in mm:ss
-    #[arg(short, long)]
+    #[arg(short, long, default_value = "15:00")]
     long: String,
+
+    #[arg(short, long, default_value = "wswswl")]
+    pattern: String,
 }
 
 fn main() {
@@ -35,54 +40,46 @@ fn main() {
     let short_duration = str_to_duration(&args.short);
     let long_duration = str_to_duration(&args.long);
 
-    let mut work_bar = create_progress_bar(work_duration);
-    let mut short_bar = create_progress_bar(short_duration);
-    let mut long_bar = create_progress_bar(long_duration);
+    let work_bar = create_progress_bar(work_duration);
+    let short_bar = create_progress_bar(short_duration);
+    let long_bar = create_progress_bar(long_duration);
+
+    let mut index = 0;
+    let modulus = args.pattern.len();
 
     loop {
-        // Work phase
         clear_terminal();
-        println!("Work Time!");
-        run_timer(work_bar.clone(), work_duration);
+        let step_idx = index % modulus;
+        let step = &args
+            .pattern
+            .chars()
+            .nth(step_idx)
+            .expect("Failure to get pattern char!")
+            .to_string();
+        println!(
+            "Pattern: {}; Index: {}; Step: {}",
+            &args.pattern, step_idx, step
+        );
+
+        index += 1;
+
+        match step.as_str() {
+            "w" => {
+                run_timer(work_bar.clone(), work_duration);
+            }
+            "s" => {
+                run_timer(short_bar.clone(), short_duration);
+            }
+            "l" => {
+                run_timer(long_bar.clone(), long_duration);
+            }
+            _ => {
+                println!("Invalid pattern encountered!");
+                break;
+            }
+        }
         play_sound_until_keypress();
-
-        // Short break phase
-        clear_terminal();
-        println!("Short Break!");
-        run_timer(short_bar.clone(), short_duration);
-        play_sound_until_keypress();
-
-        // Work phase
-        clear_terminal();
-        println!("Work Time!");
-        run_timer(work_bar.clone(), work_duration);
-        play_sound_until_keypress();
-
-
-        // Short break phase
-        clear_terminal();
-        println!("Short Break!");
-        run_timer(short_bar.clone(), short_duration);
-        play_sound_until_keypress();
-
-        // Work phase
-        clear_terminal();
-        println!("Work Time!");
-        run_timer(work_bar.clone(), work_duration);
-        play_sound_until_keypress();
-
-        // Long break phase
-        clear_terminal();
-        println!("Long Break!");
-        run_timer(long_bar.clone(), long_duration);
-        play_sound_until_keypress();
-
-        // Reset progress bars at the end of a cycle
-        work_bar = create_progress_bar(work_duration);
-        short_bar = create_progress_bar(short_duration);
-        long_bar = create_progress_bar(long_duration);
     }
-
 }
 
 fn str_to_duration(time: &str) -> Duration {
@@ -94,14 +91,21 @@ fn str_to_duration(time: &str) -> Duration {
 
 fn create_progress_bar(duration: Duration) -> ProgressBar {
     let bar = ProgressBar::new(duration.as_secs());
-    bar.set_style(ProgressStyle::default_bar()
-        .template("[{elapsed_precise}] {bar:40.cyan/blue} {percent}% {msg}").expect("Failed to create progress bar!")
-        .progress_chars("##-"));
+    bar.set_style(
+        ProgressStyle::default_bar()
+            .template("[{elapsed_precise}] {bar:40.cyan/blue} {percent}% {msg}")
+            .expect("Failed to create progress bar!")
+            .progress_chars("##-"),
+    );
     bar
 }
 
-fn run_timer(mut bar: ProgressBar, duration: Duration) {
-    bar.set_message("Running...");
+fn run_timer(bar: ProgressBar, duration: Duration) {
+    bar.reset();
+    let sec = duration.as_secs() % 60;
+    let min = (duration.as_secs() / 60) % 60;
+    let bar_message = format!("Running for {:0>2}:{:0>2}", min.to_string(), sec.to_string());
+    bar.set_message(bar_message);
     for _ in 0..duration.as_secs() {
         sleep(Duration::new(1, 0));
         bar.inc(1);
@@ -113,7 +117,6 @@ fn run_timer(mut bar: ProgressBar, duration: Duration) {
 fn clear_terminal() {
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
 }
-
 
 fn play_sound_until_keypress() {
     let running = Arc::new(AtomicBool::new(true));
@@ -127,20 +130,18 @@ fn play_sound_until_keypress() {
             match c.unwrap() {
                 Key::Char('q') => {
                     r.store(false, Ordering::SeqCst);
-                    break
-                },
+                    break;
+                }
                 _ => continue,
             }
         }
     });
 
     while running.load(Ordering::SeqCst) {
-        thread::sleep(Duration::from_secs(1));
+        sleep(Duration::from_secs(1));
         Command::new("afplay")
             .arg("/System/Library/Sounds/Ping.aiff")
             .output()
             .expect("Failed to play sound");
-
     }
 }
-
