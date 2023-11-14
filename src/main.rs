@@ -47,6 +47,8 @@ fn main() {
     let mut index = 0;
     let modulus = args.pattern.len();
 
+
+
     loop {
         clear_terminal();
         let step_idx = index % modulus;
@@ -63,21 +65,27 @@ fn main() {
 
         index += 1;
 
+        let finished_callback:fn(ProgressBar) = |pb| {
+            pb.finish_with_message("Step done!\nPress 'q' to continue");
+            pb.reset();
+        };
+
         match step.as_str() {
             "w" => {
-                run_timer(work_bar.clone(), work_duration);
+                run_timer(work_bar.clone(), work_duration, finished_callback);
             }
             "s" => {
-                run_timer(short_bar.clone(), short_duration);
+                run_timer(short_bar.clone(), short_duration, finished_callback);
             }
             "l" => {
-                run_timer(long_bar.clone(), long_duration);
+                run_timer(long_bar.clone(), long_duration, finished_callback);
             }
             _ => {
                 println!("Invalid pattern encountered!");
                 break;
             }
         }
+
         play_sound_until_keypress();
     }
 }
@@ -100,18 +108,20 @@ fn create_progress_bar(duration: Duration) -> ProgressBar {
     bar
 }
 
-fn run_timer(bar: ProgressBar, duration: Duration) {
+fn run_timer<F>(bar: ProgressBar, duration: Duration, on_finish: F)
+where F: Fn(ProgressBar) {
     bar.reset();
     let sec = duration.as_secs() % 60;
     let min = (duration.as_secs() / 60) % 60;
-    let bar_message = format!("Running for {:0>2}:{:0>2}", min.to_string(), sec.to_string());
+    let bar_message = format!("Running for {:0>2}:{:0>2}\nctrl+c to quit", min.to_string(), sec.to_string());
     bar.set_message(bar_message);
     for _ in 0..duration.as_secs() {
         sleep(Duration::new(1, 0));
         bar.inc(1);
     }
-    bar.finish_with_message("Done!");
-    bar.reset();
+    on_finish(bar);
+
+
 }
 
 fn clear_terminal() {
