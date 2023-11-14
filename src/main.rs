@@ -14,6 +14,10 @@ use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 
+
+
+// TODO: migrate TUI to https://github.com/ratatui-org/ratatui
+
 #[derive(Parser, Debug)]
 #[command(version = "1.0", author = "Your Name", about = "Pomodoro Timer")]
 struct PomArgs {
@@ -48,7 +52,6 @@ fn main() {
     let modulus = args.pattern.len();
 
 
-
     loop {
         clear_terminal();
         let step_idx = index % modulus;
@@ -65,30 +68,35 @@ fn main() {
 
         index += 1;
 
-        let finished_callback:fn(ProgressBar) = |pb| {
+        let finished_callback: fn(ProgressBar) = |pb| {
             pb.finish_with_message("Step done!\nPress 'q' to continue");
+            pb.reset();
+            play_sound_until_keypress();
+        };
+
+        let early_termination_callback: fn(ProgressBar) = |pb| {
+            pb.finish_with_message("Step skipped.");
             pb.reset();
         };
 
         match step.as_str() {
             "w" => {
-                run_timer(work_bar.clone(), work_duration, finished_callback);
+                run_timer(work_bar.clone(), work_duration, finished_callback, early_termination_callback);
             }
             "s" => {
-                run_timer(short_bar.clone(), short_duration, finished_callback);
+                run_timer(short_bar.clone(), short_duration, finished_callback, early_termination_callback);
             }
             "l" => {
-                run_timer(long_bar.clone(), long_duration, finished_callback);
+                run_timer(long_bar.clone(), long_duration, finished_callback, early_termination_callback);
             }
             _ => {
                 println!("Invalid pattern encountered!");
                 break;
             }
         }
-
-        play_sound_until_keypress();
     }
 }
+
 
 fn str_to_duration(time: &str) -> Duration {
     let parts: Vec<&str> = time.split(':').collect();
@@ -108,20 +116,51 @@ fn create_progress_bar(duration: Duration) -> ProgressBar {
     bar
 }
 
-fn run_timer<F>(bar: ProgressBar, duration: Duration, on_finish: F)
-where F: Fn(ProgressBar) {
+fn run_timer<F>(bar: ProgressBar, duration: Duration, on_finish: F, on_early_termination: F)
+    where F: Fn(ProgressBar) {
     bar.reset();
+
+    let right_arrow_pressed: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+
+
+    // let rap = right_arrow_pressed.clone();
+    // thread::spawn(move || {
+    //     let stdin = stdin();
+    //     let _stdout = stdout().into_raw_mode().unwrap();
+    //     for c in stdin.keys() {
+    //         match c.unwrap() {
+    //             Key::Right => {
+    //                 rap.store(true, Ordering::SeqCst);
+    //                 break;
+    //             }
+    //             _ => continue
+    //         }
+    //     }
+    // });
+
+
     let sec = duration.as_secs() % 60;
     let min = (duration.as_secs() / 60) % 60;
     let bar_message = format!("Running for {:0>2}:{:0>2}\nctrl+c to quit", min.to_string(), sec.to_string());
     bar.set_message(bar_message);
+    let mut did_break_early = false;
     for _ in 0..duration.as_secs() {
-        sleep(Duration::new(1, 0));
-        bar.inc(1);
+        did_break_early = right_arrow_pressed.load(Ordering::SeqCst);
+        if did_break_early {
+            break;
+        } else {
+            sleep(Duration::new(1, 0));
+            bar.inc(1);
+        }
     }
+
     on_finish(bar);
-
-
+    // if did_break_early {
+    //     // on_early_termination(bar);
+    //     on_finish(bar);
+    // } else {
+    //     on_finish(bar);
+    // }
 }
 
 fn clear_terminal() {
