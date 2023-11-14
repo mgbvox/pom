@@ -14,6 +14,10 @@ use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 
+
+
+// TODO: migrate TUI to https://github.com/ratatui-org/ratatui
+
 #[derive(Parser, Debug)]
 #[command(version = "1.0", author = "Your Name", about = "Pomodoro Timer")]
 struct PomArgs {
