@@ -1,5 +1,6 @@
+use crate::time;
+use crate::time::timestamp;
 use std::marker::PhantomData;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, PartialOrd, PartialEq)]
 pub enum Phase {
@@ -8,20 +9,20 @@ pub enum Phase {
     Long,
 }
 
-#[derive(Debug, PartialOrd, PartialEq)]
+#[derive(Debug, PartialOrd, PartialEq, Copy, Clone)]
 pub struct Open;
-#[derive(Debug, PartialOrd, PartialEq)]
+#[derive(Debug, PartialOrd, PartialEq, Copy, Clone)]
 pub struct Closed;
 
-#[derive(Debug, PartialOrd, PartialEq)]
+#[derive(Debug, PartialOrd, PartialEq, Copy, Clone)]
 pub struct Timecard<State = Open> {
     state: PhantomData<State>,
-    start: f64,
-    end: f64,
+    pub start: f64,
+    pub end: f64,
 }
 
 impl Timecard<Open> {
-    pub fn punch_in() -> Timecard<Open> {
+    pub fn begin() -> Timecard<Open> {
         Timecard {
             state: PhantomData::<Open>,
             start: timestamp(),
@@ -29,24 +30,17 @@ impl Timecard<Open> {
         }
     }
 
-    pub fn punch_out(&self) -> Timecard<Closed> {
+    pub fn elapsed(&self) -> f64 {
+        timestamp() - self.start
+    }
+
+    pub fn finalize(&self) -> Timecard<Closed> {
         Timecard {
             state: PhantomData::<Closed>,
             start: self.start,
-            end: timestamp(),
+            end: time::timestamp(),
         }
     }
-}
-
-fn timestamp() -> f64 {
-    let start = SystemTime::now();
-    let ts = start
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_nanos() as f64
-        / 1e9;
-    println!("ts: {}", ts);
-    ts
 }
 
 impl Timecard<Closed> {
@@ -64,9 +58,9 @@ mod tests {
 
     #[test]
     fn test_can_get_duration() {
-        let card = Timecard::punch_in();
+        let card = Timecard::begin();
         thread::sleep(Duration::from_millis(1));
-        let finalized = card.punch_out();
+        let finalized = card.finalize();
         assert!(finalized.duration() > 0.0);
     }
 }

@@ -5,9 +5,11 @@ use ratatui::{
 };
 
 use crate::app::App;
+use crate::time::timestamp;
 
-pub mod app;
-pub mod timecard;
+mod app;
+mod time;
+mod timecard;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -23,10 +25,15 @@ fn main() -> Result<()> {
 
     loop {
         terminal.draw(|f| {
-            let _ = app.divisions.iter().map(|_div| {
-                println!("foo");
-                f.render_widget(Paragraph::new("foo"), f.size())
-            });
+            f.render_widget(
+                Paragraph::new(format!(
+                    "dur: {}, splits: {}, ts: {}",
+                    app.duration(),
+                    app.divisions.len(),
+                    timestamp()
+                )),
+                f.size(),
+            )
         })?;
 
         // Paragraph::new(format!("Divs: {:?}\nDuration: {}", app.divisions, app.duration())), f.size());
