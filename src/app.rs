@@ -1,37 +1,24 @@
-use std::time::{Duration, Instant};
-use color_eyre::owo_colors::CssColors::SeaGreen;
+use std::time::Instant;
 
-#[derive(Debug, PartialOrd, PartialEq)]
-pub enum Phase {
-    Work,
-    Short,
-    Long,
-}
+use crate::timecard::{Closed, Open, Phase, Timecard};
 
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub struct Division {
     start: Instant,
 }
 
-
-impl Division {
-    fn new() -> Self {
-        Self {
-            start: Instant::now()
-        }
-    }
-
-    fn duration(&self) -> Duration {
-        self.start.elapsed()
-    }
-}
-
-#[derive(Debug,PartialOrd, PartialEq)]
+#[derive(Debug, PartialOrd, PartialEq)]
 pub struct App {
     pub should_quit: bool,
     pub phase: Phase,
-    pub divisions: Vec<Division>,
-    pub current_division: Option<Division>,
+    pub divisions: Vec<Timecard<Closed>>,
+    pub current_division: Option<Timecard<Open>>,
+}
+
+impl Default for App {
+    fn default() -> Self {
+        App::new()
+    }
 }
 
 impl App {
@@ -45,29 +32,28 @@ impl App {
     }
 
     pub fn punch_in(&mut self) {
-        self.current_division = Some(Division::new());
+        self.current_division = Some(Timecard::punch_in());
     }
 
     pub fn punch_out(&mut self) {
-        match &self.current_division {
-            Some(div) => {
-                self.divisions.push(div.clone());
-                self.current_division = None
-            }
-            None => { println!("No division to punch out from!") }
+        if let Some(div) = &self.current_division {
+            self.divisions.push(div.punch_out());
+            self.current_division = None
         }
     }
 
-    pub fn duration(&self) -> f32 {
-        self.divisions.iter().map(|d| d.duration().as_millis() as f32).sum()
+    pub fn duration(&self) -> f64 {
+        self.divisions.iter().map(|d| d.duration()).sum()
     }
 }
-
 
 #[cfg(test)]
 mod tests {
     use std::thread;
     use std::time::Duration;
+
+    use pretty_assertions::{assert_eq, assert_ne};
+
     use super::*;
 
     #[test]
@@ -86,7 +72,6 @@ mod tests {
         assert_eq!(app.current_division, None);
         assert_eq!(app.divisions.len(), 1);
     }
-
 
     #[test]
     fn test_calc_duration_from_division() {
