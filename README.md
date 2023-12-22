@@ -4,6 +4,7 @@
 
 
 # Pomodoro Timer
+[![codecov](https://codecov.io/gh/mgbvox/pom/graph/badge.svg?token=5EDDEE8NQH)](https://codecov.io/gh/mgbvox/pom)
 
 ```shell
 Usage: pom [OPTIONS]
