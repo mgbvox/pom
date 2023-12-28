@@ -18,24 +18,6 @@ use termion::raw::IntoRawMode;
 
 // TODO: migrate TUI to https://github.com/ratatui-org/ratatui
 
-#[derive(Parser, Debug)]
-#[command(version = "1.0", author = "Your Name", about = "Pomodoro Timer")]
-struct PomArgs {
-    /// Duration for work in mm:ss
-    #[arg(short, long, default_value = "25:00")]
-    work: String,
-
-    /// Duration for a short break in mm:ss
-    #[arg(short, long, default_value = "5:00")]
-    short: String,
-
-    /// Duration for a long break in mm:ss
-    #[arg(short, long, default_value = "15:00")]
-    long: String,
-
-    #[arg(short, long, default_value = "wswswl")]
-    pattern: String,
-}
 
 fn main() {
     let args = PomArgs::parse();

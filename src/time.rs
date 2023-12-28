@@ -8,3 +8,4 @@ pub fn timestamp() -> f64 {
         .as_nanos() as f64
         / 1e9
 }
+
