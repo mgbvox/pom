@@ -3,8 +3,11 @@
 </p>
 
 
-# Pomodoro Timer
+# Pom: 
+## A Tiny Pomodoro Timer
 [![codecov](https://codecov.io/gh/mgbvox/pom/graph/badge.svg?token=5EDDEE8NQH)](https://codecov.io/gh/mgbvox/pom)
+
+Wherein I try out various concepts in Rust app development by building a Pomodoro timer.
 
 ```shell
 Usage: pom [OPTIONS]
